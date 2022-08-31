@@ -48,8 +48,8 @@ VBoxManage: error: Details: code NS_ERROR_INVALID_ARG (0x80070057), component NA
 VBoxManage: error: Context: "AddRedirect(Bstr(strName).raw(), proto, Bstr(strHostIp).raw(), RTStrToUInt16(strHostPort), Bstr(strGuestIp).raw(), RTStrToUInt16(strGuestPort))" at line 1923 of file VBoxManageModifyVM.cpp
 ```
 ## Настройка Web-сервера
-Для того, чтобы отдавать файлы по HTTP нам потребуется настроенный веб-сервер. 
-- Так как у CentOS 8 закончилась поддержка, для установки пакетов нам потребуется поменять репозиторий.
+Для того, чтобы отдавать файлы по HTTP нам потребуется настроенный веб-сервер. Делаем сразу через ansible. 
+- Так как у CentOS 8 закончилась поддержка, для установки пакетов нам потребуется поменять репозиторий, изменив его в конфигах /etc/yum.repos.d
 - Установить Web-сервер Apache
 - Скачать образ CentOS 8.4.2150 (таумаут для ансибл пришлось увеличить до 6000)
 - Смонтировать скачанный образ в /mnt
