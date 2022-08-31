@@ -31,7 +31,7 @@ TFTP (Trivial File Transfer Protocol) — простой протокол пер
 DHCP (Dynamic Host Configuration Protocol) — протокол динамической настройки узла, позволяет сетевым устройствам автоматически получать IP-адрес и другие параметры, необходимые для работы в сети TCP/IP. (67 порт на сервере и 68 порт на клиенте)
 
 ## Подготовка Vagrantfile
-Будем использовать локально загруженный вагрант бокс bento/centos-8.4. На хостовую машину потребовалось выделить побольше ресурсов, мне хватило 5.7гб ОЗУ и 5 ядер. Далее необходимо было прокинуть порт, в машине pxeserver это 80, на хостовой 8081. После поднятия с конфигурацией из вложения, получим ошибку:
+Будем использовать локально загруженный вагрант бокс bento/centos-8.4. На хостовую машину потребовалось выделить побольше ресурсов, мне хватило 5.7гб ОЗУ и 5 ядер. Далее необходимо было прокинуть порт, в машине pxeserver это 80, на хостовой 8081. После поднятия с конфигурацией из вложения, получим ошибку, так как на Pxeclient настроена загрузка по сети:
 ```
 ==> pxeclient: Preparing network interfaces based on configuration...
     pxeclient: Adapter 1: nat
@@ -47,3 +47,24 @@ Stderr: VBoxManage: error: A NAT rule of this name already exists
 VBoxManage: error: Details: code NS_ERROR_INVALID_ARG (0x80070057), component NATEngineWrap, interface INATEngine, callee nsISupports
 VBoxManage: error: Context: "AddRedirect(Bstr(strName).raw(), proto, Bstr(strHostIp).raw(), RTStrToUInt16(strHostPort), Bstr(strGuestIp).raw(), RTStrToUInt16(strGuestPort))" at line 1923 of file VBoxManageModifyVM.cpp
 ```
+## Настройка Web-сервера
+Для того, чтобы отдавать файлы по HTTP нам потребуется настроенный веб-сервер. 
+- Так как у CentOS 8 закончилась поддержка, для установки пакетов нам потребуется поменять репозиторий.
+- Установить Web-сервер Apache
+- Скачать образ CentOS 8.4.2150 (таумаут для ансибл пришлось увеличить до 6000)
+- Смонтировать скачанный образ в /mnt
+- Создать каталог /iso и скопировать содержимое /mnt (ставим права 0755)
+- Настроить доступ по HTTP для файлов из каталога /iso. Для этого подготовлен конфиг:
+```
+IndexOptions FancyIndexing HTMLTable VersionSort
+
+Alias /centos8 /iso
+<Directory "/iso">
+    Options Indexes FollowSymLinks
+    AllowOverride None
+    Require all granted
+</Directory>
+```
+- Перезапустить сервис httpd, добавив его в автозагрузку
+
+Проверка с хост машины:
