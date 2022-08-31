@@ -54,7 +54,7 @@ VBoxManage: error: Context: "AddRedirect(Bstr(strName).raw(), proto, Bstr(strHos
 - Скачать образ CentOS 8.4.2150 (таумаут для ансибл пришлось увеличить до 6000)
 - Смонтировать скачанный образ в /mnt
 - Создать каталог /iso и скопировать содержимое /mnt (ставим права 0755)
-- Настроить доступ по HTTP для файлов из каталога /iso. Для этого подготовлен конфиг:
+- Настроить доступ по HTTP для файлов из каталога /iso. Для этого подготовлен конфиг pxeboot.conf:
 ```
 IndexOptions FancyIndexing HTMLTable VersionSort
 
@@ -68,3 +68,79 @@ Alias /centos8 /iso
 - Перезапустить сервис httpd, добавив его в автозагрузку
 
 Проверка с хост машины:
+
+
+## Настройка TFTP-сервера
+TFTP-сервер потребуется для отправки первичных файлов загрузки (vmlinuz, initrd.img и т. д.). Также реализуется через Ansible, для этого необходимо:
+- Установить tftp-сервер
+- Созать каталог, в котором будем хранить наше меню загрузки и создаем само меню:
+```
+default menu.c32
+prompt 0
+#Время счётчика с обратным отсчётом (установлено 15 секунд)
+timeout 150
+#Параметр использования локального времени
+ONTIME local
+#Имя «шапки» нашего меню
+menu title OTUS PXE Boot Menu
+#Описание первой строки
+label 1
+#Имя, отображаемое в первой строке
+menu label ^ Graph install CentOS 8
+#Адрес ядра, расположенного на TFTP-сервере
+kernel /vmlinuz
+#Адрес файла initrd, расположенного на TFTP-сервере
+initrd /initrd.img
+#Получаем адрес по DHCP и указываем адрес веб-сервера
+append ip=enp0s3:dhcp inst.repo=http://10.0.0.20/centos8
+label 2
+menu label ^ Text install CentOS 8
+kernel /vmlinuz
+initrd /initrd.img
+append ip=enp0s3:dhcp inst.repo=http://10.0.0.20/centos8 text
+label 3
+menu label ^ rescue installed system
+kernel /vmlinuz
+initrd /initrd.img
+append ip=enp0s3:dhcp inst.repo=http://10.0.0.20/centos8 rescue
+```
+- Распаковать rpm пакет syslinux-tftpboot, достать от туда файлы и скопировать в директорию /var/lib/tftpboot/:
+* pxelinux.0
+* ldlinux.c32
+* libmenu.c32
+* libutil.c32
+* menu.c32
+* vesamenu.c32
+- Также копировать файлы initrd.img и vmlinuz
+- Перезапустить TFTP-сервер, добавив его в автозагрузку
+
+## Настройка DHCP-сервера
+Аналогично предыдущим модулям развертывание через ansible выглядит так:
+- Установить DHCP-сервер
+- Подготовить конфиг /etc/dhcp/dhcpd.conf:
+```
+option space pxelinux;
+option pxelinux.magic code 208 = string;
+option pxelinux.configfile code 209 = text;
+option pxelinux.pathprefix code 210 = text;
+option pxelinux.reboottime code 211 = unsigned integer 32;
+option architecture-type code 93 = unsigned integer 16;
+#Указываем сеть и маску подсети, в которой будет работать DHCP-сервер
+subnet 10.0.0.0 netmask 255.255.255.0 {
+#Указываем шлюз по умолчанию, если потребуется
+#option routers 10.0.0.1;
+#Указываем диапазон адресов
+range 10.0.0.100 10.0.0.120;
+class "pxeclients" {
+match if substring (option vendor-class-identifier, 0, 9) =
+"PXEClient";
+#Указываем адрес TFTP-сервера
+next-server 10.0.0.20;
+#Указываем имя файла, который надо запустить с TFTP-сервера
+filename "pxelinux.0";
+}
+```
+- Перезапустить dhcpd и добавить в автозагрузку
+
+## Проверка
+Запускаем машину вручную из VBoxManage:
