@@ -29,3 +29,21 @@ PXE (Preboot eXecution Environment) — это набор протоколов, 
 TFTP (Trivial File Transfer Protocol) — простой протокол передачи файлов, используется главным образом для первоначальной загрузки бездисковых рабочих станций. Основная задача протокола TFTP — отправка указанных файлов клиенту.
 
 DHCP (Dynamic Host Configuration Protocol) — протокол динамической настройки узла, позволяет сетевым устройствам автоматически получать IP-адрес и другие параметры, необходимые для работы в сети TCP/IP. (67 порт на сервере и 68 порт на клиенте)
+
+## Подготовка Vagrantfile
+Будем использовать локально загруженный вагрант бокс bento/centos-8.4. На хостовую машину потребовалось выделить побольше ресурсов, мне хватило 5.7гб ОЗУ и 5 ядер. Далее необходимо было прокинуть порт, в машине pxeserver это 80, на хостовой 8081. После поднятия с конфигурацией из вложения, получим ошибку:
+```
+==> pxeclient: Preparing network interfaces based on configuration...
+    pxeclient: Adapter 1: nat
+    pxeclient: Adapter 2: hostonly
+==> pxeclient: Forwarding ports...
+    pxeclient: 22 (guest) => 2200 (host) (adapter 1)
+There was an error while executing `VBoxManage`, a CLI used by Vagrant
+for controlling VirtualBox. The command and stderr is shown below.
+
+Command: ["modifyvm", "62551d5d-e65e-49d0-8d52-099f1731f5f4", "--natpf1", "ssh,tcp,127.0.0.1,2200,,22"]
+
+Stderr: VBoxManage: error: A NAT rule of this name already exists
+VBoxManage: error: Details: code NS_ERROR_INVALID_ARG (0x80070057), component NATEngineWrap, interface INATEngine, callee nsISupports
+VBoxManage: error: Context: "AddRedirect(Bstr(strName).raw(), proto, Bstr(strHostIp).raw(), RTStrToUInt16(strHostPort), Bstr(strGuestIp).raw(), RTStrToUInt16(strGuestPort))" at line 1923 of file VBoxManageModifyVM.cpp
+```
